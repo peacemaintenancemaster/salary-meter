@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>월급 미터기</title>
+    <link href="https://fonts.googleapis.com/css2?family=DungGeunMo&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --modern-bg: #f0f2f5;
+            --retro-bg: #1a1a1a;
+            --retro-green: #33ff00;
+            --retro-orange: #ffaa00;
+            --grass-green: #249405;
+            --modern-accent: #007bff;
+            /* 버튼 및 상태창 색상 변수 */
+            --color-drive: #b3a2f2;
+            --color-surcharge: #f2a2b3;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { 
+            width: 100vw; height: 100vh; overflow: hidden; 
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            background: #e9ecef; transition: background 0.3s;
+        }
+        body[data-theme="retro"] { background: #000; }
+        .hidden { display: none !important; }
+
+        .app-container { position: relative; width: 95%; max-width: 650px; }
+        .theme-toggle { position: absolute; top: -50px; right: 0; display: flex; gap: 10px; z-index: 100; }
+        .mode-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; font-weight: 900; cursor: pointer; color: #666; }
+        .mode-btn.active { background: #111; color: #fff; border-color: #111; }
+        body[data-theme="retro"] .mode-btn.active { background: var(--retro-orange); color: #000; }
+
+        /* 설정 화면 */
+        #setup-screen { background: #fff; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 900; color: #888; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+
+        /* 일반 모드 스타일 */
+        .main-card { background: #fff; padding: 40px; border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.1); }
+        .modern-display { text-align: center; }
+        .modern-emoji { font-size: 50px; margin-bottom: 10px; height: 60px; display: flex; align-items: center; justify-content: center; animation: bounce 2s infinite ease-in-out; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .val-lg { font-size: 56px; font-weight: 900; color: #111; margin: 10px 0; }
+        .sub-stats { font-size: 14px; color: #777; margin-bottom: 25px; font-weight: 400; }
+        .sub-stats span { font-weight: 900; color: #333; }
+
+        .m-btn { padding: 15px 5px; border: none; border-radius: 12px; font-family: inherit; font-size: 16px; cursor: pointer; font-weight: 900; transition: 0.2s; background: #eee; color: #333; width: 100%; }
+        .m-btn.ot-active { background: #ff471a; color: #fff; box-shadow: 0 0 15px rgba(255, 71, 26, 0.4); }
+
+        .ms-box { background: #f8f9fa; border-radius: 20px; padding: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; text-align: left; }
+        .ms-bar-bg { width: 100%; height: 8px; background: #eee; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+        .ms-bar-fill { height: 100%; background: #222; width: 0%; transition: width 0.3s; }
+
+        /* 일반 모드 야근 설정 팝업 위치 (우측 정렬) */
+        .mod-btn-wrap { position: relative; width: 100%; }
+        .modern-ot-pop { position: absolute; bottom: 65px; right: 0; background: #fff; padding: 15px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #eee; z-index: 200; gap: 5px; }
+        .modern-ot-pop input { width: 60px; padding: 8px; border: 2px solid #eee; border-radius: 8px; text-align: center; font-weight: 900; font-size: 16px; color: var(--modern-accent); }
+
+        /* 택시 모드 디자인 */
+        #app-retro { background: #2a2a2a; border: 12px solid #1a1a1a; border-radius: 40px; color: #fff; font-family: 'DungGeunMo', monospace; padding: 30px; }
+        .retro-screen { background: #fff; border-radius: 20px; padding: 25px; display: flex; gap: 20px; align-items: center; color: #000; box-shadow: inset 0 2px 10px rgba(0,0,0,0.1); position: relative; }
+        
+        .horse-container { width: 160px; height: 110px; background: var(--grass-green) !important; border: 2px solid #ddd; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+        @keyframes horse-vibe { 0% { transform: translateY(0); } 50% { transform: translateY(-2px); } 100% { transform: translateY(0); } }
+        .horse-gif { width: 140%; height: 140%; background-size: contain; background-repeat: no-repeat; background-position: center; image-rendering: pixelated; }
+        
+        .retro-info { flex: 1; display: flex; flex-direction: column; align-items: flex-end; text-align: right; overflow: hidden; }
+        .retro-price-val { font-size: 60px; color: #000; line-height: 1; margin: 10px 0; font-weight: bold; }
+        
+        /* 상태 배지 색상 동적 변경 */
+        #retro-status-badge { 
+            display: inline-block; 
+            background: var(--color-drive); 
+            color: #000; 
+            padding: 4px 15px; 
+            border-radius: 20px; 
+            font-size: 16px; 
+            margin-bottom: 12px; 
+            font-weight: bold; 
+            transition: background 0.2s; 
+        }
+        #retro-status-badge.ot-badge-active { background: var(--color-surcharge) !important; }
+        
+        .retro-sub-text { width: 100%; font-size: 15px; color: #444; border-top: 1px dashed #ccc; padding-top: 12px; }
+
+        /* 택시 실물 버튼 */
+        .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 25px; }
+        .r-btn { padding: 15px 5px; border: 2px solid rgba(0,0,0,0.1); border-radius: 12px; font-family: inherit; font-size: 18px; cursor: pointer; font-weight: 900; position: relative; box-shadow: 0 6px 0 rgba(0,0,0,0.3), inset 0 2px 2px rgba(255,255,255,0.5); transition: 0.1s; }
+        .r-btn:active, .r-btn.pressed { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2); }
+        .btn-r-white { background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%); color: #333; }
+        .btn-r-purple { background: linear-gradient(180deg, #dcd0ff 0%, #b3a2f2 100%); color: #333; }
+        .btn-r-pink { background: linear-gradient(180deg, #ffc0cb 0%, #f2a2b3 100%); color: #333; }
+        .btn-r-green { background: linear-gradient(180deg, #d4edda 0%, #b3f2c2 100%); color: #333; }
+        .r-btn.active-run { background: var(--color-drive); transform: translateY(4px); box-shadow: inset 0 4px 8px rgba(0,0,0,0.4); cursor: default; filter: brightness(0.9); }
+        .r-btn.ot-active { background: var(--color-surcharge); border: 2px solid #ff471a; }
+
+        .retro-ot-pop { position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); background: #222; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; border: 1px solid #555; z-index: 10; font-size: 14px; gap: 5px; }
+        .retro-ot-pop input { width: 50px; background: #000; border: 1px solid var(--retro-green); color: var(--retro-green); text-align: center; font-family: 'DungGeunMo'; font-size: 16px; }
+
+        #stealth-bar { position: fixed; top: 0; left: 0; width: 100%; height: 1px; z-index: 9999; background: transparent; transition: 0.2s; display: flex; align-items: center; padding-left: 20px; color: #fff; }
+        #stealth-bar:hover { height: 30px; background: rgba(0,0,0,0.8); font-size: 12px; }
+    </style>
+</head>
+<body data-theme="modern">
+    <div id="stealth-bar"><span>Session: </span><span id="stealth-val">0</span></div>
+    <div class="app-container">
+        <div class="theme-toggle">
+            <button class="mode-btn active" id="btn-m-mod" onclick="setTheme('modern')">일반 모드</button>
+            <button class="mode-btn" id="btn-m-ret" onclick="setTheme('retro')">택시 모드</button>
+        </div>
+
+        <div id="setup-screen">
+            <h2 style="margin-bottom:25px; text-align:center;">💸 월급 미터기 설정</h2>
+            <div class="input-group"><label>세전 월급 (만원)</label><input type="number" id="in-sal" value="300"></div>
+            <div class="input-group"><label>월급일 (일)</label><input type="number" id="in-payday" value="25"></div>
+            <div class="input-group"><label>출근 시간</label><input type="time" id="in-start"></div>
+            <div class="input-group"><label>퇴근 시간</label><input type="time" id="in-end"></div>
+            <button id="start-btn" style="width:100%; padding:18px; background:#111; color:#fff; border:none; border-radius:15px; font-size:18px; font-weight:900; cursor:pointer;" onclick="startMeter()">돈 벌러 가기</button>
+        </div>
+
+        <div id="app-modern" class="main-card hidden">
+            <div class="modern-display">
+                <div class="modern-emoji" id="mod-emoji">🚶</div>
+                <p style="font-size:14px; color:#999; font-weight:900;">오늘 번 금액</p>
+                <div class="val-lg" id="mod-display">₩0</div>
+                <div class="sub-stats">월 누적: <span id="mod-accum">0</span>원 (<span id="mod-pct">0%</span>)</div>
+                <div class="ms-box"><div id="ms-icon" style="font-size:30px;">☕</div><div style="flex:1"><div id="ms-text" style="font-weight:900; font-size:15px; color:#333;">계산 중...</div><div class="ms-bar-bg"><div class="ms-bar-fill" id="ms-bar"></div></div></div></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="mod-btn-wrap"><button class="m-btn" onclick="backToSetup()">설정</button></div>
+                    <div class="mod-btn-wrap">
+                        <button class="m-btn" id="mod-ot-btn" onclick="toggleOT(event)">야근 모드</button>
+                        <div id="mod-ot-pop" class="modern-ot-pop hidden" onclick="event.stopPropagation()">
+                            <input type="number" id="mod-ot-rate" value="1.5" step="0.1" onchange="updateOTRate()"><span style="font-weight:900; color:#333;">x</span>
+                        </div>
+                    </div>
+                    <button class="m-btn" style="grid-column: span 2; background:#ffe0e0; color:#c0392b;" onclick="finishWork()">업무 종료</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="app-retro" class="hidden">
+            <div class="retro-screen"><div class="horse-container" id="horse-box"><div class="horse-gif" id="horse-img"></div></div><div class="retro-info"><div class="retro-price-val"><span id="ret-display">0</span><span style="font-size:24px; margin-left:5px;">원</span></div><div id="retro-status-badge">주행중</div><div class="retro-sub-text"><span id="ret-bottom-info">누적 : 0원, 0%</span></div></div></div>
+            <div class="btn-grid"><button class="r-btn btn-r-white" onclick="backToSetup()">설정</button><button class="r-btn btn-r-purple active-run" disabled>주행</button><button class="r-btn btn-r-pink" id="ret-ot-btn" onclick="toggleOT(event)">할증<div id="ret-ot-pop" class="retro-ot-pop hidden" onclick="event.stopPropagation()"><input type="number" id="ret-ot-rate" value="1.5" step="0.1" onchange="updateOTRate()"><span style="font-weight: bold;">x</span></div></button><button class="r-btn btn-r-green" onclick="finishWork()">지불</button></div>
+        </div>
+    </div>
+
+    <script>
+        const MILESTONES = [{ price: 2000, name: '아메리카노 한 잔', icon: '☕' },{ price: 10000, name: '뜨끈한 국밥', icon: '🍲' },{ price: 25000, name: '치킨 한 마리', icon: '🍗' },{ price: 50000, name: '가성비 오마카세', icon: '🍣' },{ price: 100000, name: '결혼식 축의금', icon: '💌' },{ price: 300000, name: '제주도 항공권', icon: '✈️' },{ price: 1500000, name: '최신형 스마트폰', icon: '📱' },{ price: 3000000, name: '꿈꾸던 해외여행', icon: '🌍' }];
+        const EMOJIS = ['🚶', '🔥', '💼', '📟', '💻'];
+        let state = { active: false, salary: 0, wonPerSec: 0, session: 0, accumulated: 0, otMode: false, otRate: 1.5, lastTick: 0, theme: 'modern' };
+        const HORSE_GIF = "./galloping horse gif.gif";
+
+        window.onload = () => {
+            const now = new Date();
+            document.getElementById('in-start').value = now.toTimeString().slice(0,5);
+            let end = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+            if (end.getMinutes() >= 30) end.setHours(end.getHours() + 1);
+            end.setMinutes(0);
+            document.getElementById('in-end').value = end.toTimeString().slice(0,5);
+            window.addEventListener('click', () => { document.getElementById('mod-ot-pop').classList.add('hidden'); document.getElementById('ret-ot-pop').classList.add('hidden'); });
+        };
+
+        function countWorkDays(start, end) {
+            let count = 0; let cur = new Date(start);
+            while (cur <= end) { let day = cur.getDay(); if (day !== 0 && day !== 6) count++; cur.setDate(cur.getDate() + 1); }
+            return count;
+        }
+
+        function startMeter() {
+            const now = new Date();
+            const salVal = parseFloat(document.getElementById('in-sal').value) * 10000;
+            const payDay = parseInt(document.getElementById('in-payday').value);
+            const [sh, sm] = document.getElementById('in-start').value.split(':').map(Number);
+            const [eh, em] = document.getElementById('in-end').value.split(':').map(Number);
+            let workSecs = (eh * 3600 + em * 60) - (sh * 3600 + sm * 60);
+            if(workSecs <= 0) workSecs += 24 * 3600;
+
+            let cycleStart = new Date(now.getFullYear(), now.getMonth(), payDay + 1);
+            let cycleEnd = new Date(now.getFullYear(), now.getMonth(), payDay);
+            if (now.getDate() <= payDay) cycleStart.setMonth(cycleStart.getMonth() - 1);
+            else cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+
+            const totalWD = countWorkDays(cycleStart, cycleEnd);
+            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+            const passedWD = countWorkDays(cycleStart, yesterday);
+
+            state.salary = salVal;
+            state.wonPerSec = (salVal / totalWD) / workSecs;
+            state.accumulated = (salVal / totalWD) * passedWD;
+            
+            if(!state.active) { state.session = 0; state.active = true; state.lastTick = Date.now(); requestAnimationFrame(tick); }
+            document.getElementById('setup-screen').classList.add('hidden');
+            renderMode();
+        }
+
+        function tick() {
+            if(!state.active) return;
+            const now = Date.now(); const delta = (now - state.lastTick) / 1000; state.lastTick = now;
+            state.session += state.wonPerSec * delta * (state.otMode ? state.otRate : 1);
+            updateUI(); requestAnimationFrame(tick);
+        }
+
+        function updateUI() {
+            const s = Math.floor(state.session); const total = Math.floor(state.accumulated + state.session);
+            const pct = ((total / state.salary) * 100).toFixed(2);
+            document.getElementById('stealth-val').innerText = `+${s.toLocaleString()}`;
+            document.getElementById('mod-display').innerText = `₩${s.toLocaleString()}`;
+            document.getElementById('mod-accum').innerText = total.toLocaleString();
+            document.getElementById('mod-pct').innerText = `${pct}%`;
+            document.getElementById('mod-emoji').innerText = EMOJIS[Math.floor(Date.now() / 10000) % EMOJIS.length];
+            updateMilestone(state.session);
+            document.getElementById('ret-display').innerText = s.toLocaleString();
+            document.getElementById('ret-bottom-info').innerText = `누적 : ${total.toLocaleString()}원, ${pct}%`;
+        }
+
+        function updateMilestone(current) {
+            let nextIdx = MILESTONES.findIndex(m => m.price > current);
+            const textEl = document.getElementById('ms-text'); const barEl = document.getElementById('ms-bar'); const iconEl = document.getElementById('ms-icon');
+            if(nextIdx === -1) { textEl.innerText = "모든 목표 달성!"; barEl.style.width = "100%"; return; }
+            const next = MILESTONES[nextIdx]; const prevP = nextIdx > 0 ? MILESTONES[nextIdx-1].price : 0;
+            const progress = ((current - prevP) / (next.price - prevP)) * 100;
+            const remSecs = (next.price - current) / (state.wonPerSec * (state.otMode ? state.otRate : 1));
+            iconEl.innerText = next.icon; barEl.style.width = `${progress}%`;
+            textEl.innerText = (nextIdx === 0 || progress > 50) ? `${next.name}까지 ${formatTimeRem(remSecs)}` : `${MILESTONES[nextIdx-1].name} 확보!`;
+        }
+
+        function formatTimeRem(secs) {
+            if (secs <= 0) return "완료!";
+            const h = Math.floor(secs / 3600); const m = Math.floor((secs % 3600) / 60); const s = Math.floor(secs % 60);
+            return h > 0 ? `${h}시간 ${m}분` : m > 0 ? `${m}분 ${s}초` : `${s}초`;
+        }
+
+        function setTheme(m) { state.theme = m; document.body.setAttribute('data-theme', m); document.getElementById('btn-m-mod').classList.toggle('active', m === 'modern'); document.getElementById('btn-m-ret').classList.toggle('active', m === 'retro'); document.getElementById('start-btn').innerText = (m === 'modern') ? "돈 벌러 가기" : "운행 시작"; if(state.active) renderMode(); }
+        function renderMode() { document.getElementById('app-modern').classList.toggle('hidden', state.theme !== 'modern'); document.getElementById('app-retro').classList.toggle('hidden', state.theme !== 'retro'); document.getElementById('horse-img').style.backgroundImage = state.theme === 'retro' ? `url('${HORSE_GIF}')` : 'none'; }
+        
+        function toggleOT(e) { 
+            e.stopPropagation(); 
+            const popId = state.theme === 'modern' ? 'mod-ot-pop' : 'ret-ot-pop';
+            const pop = document.getElementById(popId);
+            const badge = document.getElementById('retro-status-badge');
+
+            if (state.otMode) {
+                state.otMode = false;
+                document.getElementById('mod-ot-btn').classList.remove('ot-active');
+                document.getElementById('ret-ot-btn').classList.remove('ot-active');
+                document.getElementById('ret-ot-btn').classList.remove('pressed');
+                badge.innerText = "주행중";
+                badge.classList.remove('ot-badge-active');
+                pop.classList.add('hidden');
+                updateHorseSpeed(1);
+            } else {
+                state.otMode = true;
+                const rateInput = document.getElementById(state.theme === 'modern' ? 'mod-ot-rate' : 'ret-ot-rate');
+                let val = parseFloat(rateInput.value) || 1.5;
+                if (val < 1.1) val = 1.1;
+                state.otRate = val;
+
+                document.getElementById('mod-ot-btn').classList.add('ot-active');
+                document.getElementById('ret-ot-btn').classList.add('ot-active');
+                document.getElementById('ret-ot-btn').classList.add('pressed');
+                badge.innerText = "할증운행";
+                badge.classList.add('ot-badge-active');
+                pop.classList.remove('hidden');
+                updateHorseSpeed(state.otRate);
+            }
+        }
+
+        function updateOTRate() { 
+            let rateInput = document.getElementById(state.theme === 'modern' ? 'mod-ot-rate' : 'ret-ot-rate');
+            let val = parseFloat(rateInput.value) || 1.5;
+            if (val < 1.1) { alert("할증 비율은 최소 1.1배 이상이어야 합니다."); val = 1.1; rateInput.value = 1.1; }
+            state.otRate = val; 
+            state.otMode = true; 
+            updateHorseSpeed(val);
+        }
+
+        function updateHorseSpeed(rate) {
+            const box = document.getElementById('horse-box');
+            if (rate > 1) {
+                const duration = 0.5 / rate;
+                box.style.animation = `horse-vibe ${duration}s infinite linear`;
+            } else {
+                box.style.animation = 'none';
+            }
+        }
+
+        function backToSetup() { document.getElementById('app-modern').classList.add('hidden'); document.getElementById('app-retro').classList.add('hidden'); document.getElementById('setup-screen').classList.remove('hidden'); }
+        function finishWork() { if(confirm(`오늘 수확: ${Math.floor(state.session).toLocaleString()}원\n종료하시겠습니까?`)) { state.active = false; location.reload(); } }
+    </script>
+</body>
+</html>
